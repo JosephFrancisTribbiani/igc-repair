@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "fix-igc"
+name = "igc-repair"
 version = "0.1.0"
 description = ""
 authors = ["amakarovskiy <amakarovskiy@ivi.ru>"]

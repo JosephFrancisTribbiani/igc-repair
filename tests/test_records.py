@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 from typing import Optional, Type, Any, List, Union
-from fix_igc.reader.records import (
+from igcrepair.reader.records import (
     RecordError, 
     RecordLiteral,
     Latitude,
@@ -12,7 +12,7 @@ from fix_igc.reader.records import (
     A,
     B,
 )
-from fix_igc.reader.utils import get_field
+from igcrepair.reader.utils import get_field
 from parameterized import parameterized
 import datetime
 
