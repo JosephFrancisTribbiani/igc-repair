@@ -1,13 +1,16 @@
 import unittest
-from typing import Type, List, Tuple, Any
+from typing import Type
+
 from parameterized import parameterized
+
 from igcrepair.reader.fields import (
     RecordFieldError,
     StringRecordField,
     RecordLiteral,
     ManufacturerCode,
     UniqueID,
-    IDExtention,
+    IDExtension,
+    Validity,
 )
 
 
@@ -19,7 +22,7 @@ class BaseTestString(unittest.TestCase):
         self._base_test(self.FIELD(value), excepted_value)
         self._base_test(self.FIELD.from_string(value), excepted_value)
     
-    def _base_test(self, field: str, excepted_value: str) -> None:
+    def _base_test(self, field: StringRecordField, excepted_value: str) -> None:
         self.assertEqual(field.value, excepted_value)
         self.assertEqual(field(), excepted_value)
         self.assertEqual(str(field), excepted_value)
@@ -35,7 +38,7 @@ class BaseTestString(unittest.TestCase):
 
 class TestRecordLiteral(BaseTestString):
 
-    FIELD = RecordLiteral
+    FIELD: Type[StringRecordField] = RecordLiteral
 
     @parameterized.expand(
         [
@@ -71,7 +74,7 @@ class TestRecordLiteral(BaseTestString):
 
 class TestManufacturerCode(BaseTestString):
 
-    FIELD = ManufacturerCode
+    FIELD: Type[StringRecordField] = ManufacturerCode
 
     @parameterized.expand(
         [
@@ -107,7 +110,7 @@ class TestManufacturerCode(BaseTestString):
 
 class TestUniqueID(BaseTestString):
 
-    FIELD = UniqueID
+    FIELD: Type[StringRecordField] = UniqueID
 
     @parameterized.expand(
         [
@@ -141,9 +144,9 @@ class TestUniqueID(BaseTestString):
         super().base_test_from_string_exception(value)
 
 
-class TestIDExtention(BaseTestString):
+class TestIDExtension(BaseTestString):
 
-    FIELD = IDExtention
+    FIELD: Type[StringRecordField] = IDExtension
 
     @parameterized.expand(
         [
@@ -161,6 +164,45 @@ class TestIDExtention(BaseTestString):
             (True, ),
             (False, ),
             (None, ),
+        ]
+    )
+    def test_exception(self, value: str) -> None:
+        super().base_test_exception(value)
+
+    @parameterized.expand(
+        [
+            (1, ),
+            (True, ),
+            (False, ),
+            (None, ),
+        ]
+    )
+    def test_from_string_exception(self, value: str) -> None:
+        super().base_test_from_string_exception(value)
+
+
+class TestValidity(BaseTestString):
+
+    FIELD: Type[StringRecordField] = Validity
+
+    @parameterized.expand(
+        [
+            ('A', 'A'),
+            ('a', 'A'),
+            ('V', 'V'),
+            ('v', 'V'),
+        ]
+    )
+    def test(self, value: str, excepted_value: str) -> None:
+        super().base_test(value, excepted_value)
+
+    @parameterized.expand(
+        [
+            ('aa', ),
+            ('B', ),
+            (1, ),
+            (None, ),
+            (True, ),
         ]
     )
     def test_exception(self, value: str) -> None:
