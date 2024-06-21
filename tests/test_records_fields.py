@@ -1,12 +1,41 @@
 import unittest
-from typing import Type
+from typing import Type, List, Tuple, Any
 from parameterized import parameterized
-from igcrepair.reader.fields import RecordLiteral
-from igcrepair.reader.fields import ManufacturerCode
-from igcrepair.reader.utils import RecordFieldError
+from igcrepair.reader.fields import (
+    RecordFieldError,
+    StringRecordField,
+    RecordLiteral,
+    ManufacturerCode,
+    UniqueID,
+    IDExtention,
+)
 
 
-class TestRecordLiteral(unittest.TestCase):
+class BaseTestString(unittest.TestCase):
+
+    FIELD: Type[StringRecordField] = NotImplemented
+    
+    def base_test(self, value: str, excepted_value: str) -> None:
+        self._base_test(self.FIELD(value), excepted_value)
+        self._base_test(self.FIELD.from_string(value), excepted_value)
+    
+    def _base_test(self, field: str, excepted_value: str) -> None:
+        self.assertEqual(field.value, excepted_value)
+        self.assertEqual(field(), excepted_value)
+        self.assertEqual(str(field), excepted_value)
+
+    def base_test_exception(self, value: str) -> None:
+        with self.assertRaisesRegex(RecordFieldError, 'Формат поля .* не соответствует формату .*.'):
+            self.FIELD(value)
+    
+    def base_test_from_string_exception(self, value: str) -> None:
+        with self.assertRaisesRegex(RecordFieldError, 'Передаваемое значение должно быть типа <str>.'):
+            self.FIELD.from_string(value)
+
+
+class TestRecordLiteral(BaseTestString):
+
+    FIELD = RecordLiteral
 
     @parameterized.expand(
         [
@@ -16,64 +45,134 @@ class TestRecordLiteral(unittest.TestCase):
             ('b', 'B'),
         ]
     )
-    def test_record_literal(self, record_literal: str, expected: str) -> None:
-       self._test_record_literal(RecordLiteral(record_literal), expected)
-       self._test_record_literal(RecordLiteral.from_string(record_literal), expected)
+    def test(self, value: str, excepted_value: str) -> None:
+        super().base_test(value, excepted_value)
 
-    def _test_record_literal(self, record_field: Type[RecordLiteral], expected: str) -> None:
-        self.assertEqual(record_field.record_literal, expected)
-        self.assertEqual(record_field(), expected)
-        self.assertEqual(str(record_field), expected)
-        
     @parameterized.expand(
         [
-            ('S', RecordFieldError),
-            (1, RecordFieldError),
-            ('AA', RecordFieldError),
-            (None, RecordFieldError),
+            ('S', ),
+            (1, ),
+            ('AA', ),
+            (None, ),
         ]
     )
-    def test_record_literal_exception(self, record_literal: str, expected_exception: Type[RecordFieldError]) -> None:
-        with self.assertRaisesRegex(expected_exception, 'Не является ни одной из букв'):
-            RecordLiteral(record_literal)
+    def test_exception(self, value: str) -> None:
+        super().base_test_exception(value)
+
+    @parameterized.expand(
+        [
+            (1, ),
+            (None, ),
+        ]
+    )
+    def test_from_string_exception(self, value: str) -> None:
+        super().base_test_from_string_exception(value)
 
 
-class TestManufacturerCode(unittest.TestCase):
+class TestManufacturerCode(BaseTestString):
+
+    FIELD = ManufacturerCode
 
     @parameterized.expand(
         [
             ('Abc', 'ABC'),
-            ('abc', 'ABC'),
-            ('XXX', 'XXX'),
+            ('a1c', 'A1C'),
+            ('X12', 'X12'),
         ]
     )
-    def test_manufacturer_code(self, manufacturer_code: str, expected: str) -> None:
-        self._test_manufacturer_code(ManufacturerCode(manufacturer_code), expected)
-        self._test_manufacturer_code(ManufacturerCode.from_string(manufacturer_code), expected)
-    
-    def _test_manufacturer_code(self, record_field: Type[ManufacturerCode], expected: str) -> None:
-        self.assertEqual(record_field.manufacturer_code, expected)
-        self.assertEqual(record_field(), expected)
-        self.assertEqual(str(record_field), expected)
+    def test(self, value: str, excepted_value: str) -> None:
+        super().base_test(value, excepted_value)
 
     @parameterized.expand(
         [
-            ('AB', RecordFieldError),
-            (1, RecordFieldError),
-            ('AAAA', RecordFieldError),
-            ('AA2A', RecordFieldError),
-            (None, RecordFieldError),
+            ('AB', ),
+            (1, ),
+            ('AAAA', ),
+            ('AA2A', ),
+            (None, ),
         ]
     )
-    def test_manufacturer_code_exception(self, manufacturer_code: str, expected_exception: Type[RecordFieldError]) -> None:
-        with self.assertRaisesRegex(expected_exception, 'Код производителя должен состоять из трех символов {0-9, a-z, A-Z}.'):
-            ManufacturerCode(manufacturer_code)
+    def test_exception(self, value: str) -> None:
+        super().base_test_exception(value)
 
     @parameterized.expand(
         [
-            (1, RecordFieldError),
+            (1, ),
+            (None, ),
         ]
     )
-    def test_manufacturer_code_from_string_exception(self, manufacturer_code: str, expected_exception: Type[RecordFieldError]) -> None:
-        with self.assertRaisesRegex(expected_exception, 'Передаваемое значение должно быть типа <str>.'):
-            ManufacturerCode.from_string(manufacturer_code)
+    def test_from_string_exception(self, value: str) -> None:
+        super().base_test_from_string_exception(value)
+
+
+class TestUniqueID(BaseTestString):
+
+    FIELD = UniqueID
+
+    @parameterized.expand(
+        [
+            ('Abc', 'ABC'),
+            ('a1c', 'A1C'),
+            ('X12', 'X12'),
+        ]
+    )
+    def test(self, value: str, excepted_value: str) -> None:
+        super().base_test(value, excepted_value)
+
+    @parameterized.expand(
+        [
+            ('AB', ),
+            (1, ),
+            ('AAAA', ),
+            ('AA2A', ),
+            (None, ),
+        ]
+    )
+    def test_exception(self, value: str) -> None:
+        super().base_test_exception(value)
+
+    @parameterized.expand(
+        [
+            (1, ),
+            (None, ),
+        ]
+    )
+    def test_from_string_exception(self, value: str) -> None:
+        super().base_test_from_string_exception(value)
+
+
+class TestIDExtention(BaseTestString):
+
+    FIELD = IDExtention
+
+    @parameterized.expand(
+        [
+            ('Abc1234asf', 'Abc1234asf'),
+            ('', ''),
+            ('abc', 'abc'),
+        ]
+    )
+    def test(self, value: str, excepted_value: str) -> None:
+        super().base_test(value, excepted_value)
+
+    @parameterized.expand(
+        [
+            (1, ),
+            (True, ),
+            (False, ),
+            (None, ),
+        ]
+    )
+    def test_exception(self, value: str) -> None:
+        super().base_test_exception(value)
+
+    @parameterized.expand(
+        [
+            (1, ),
+            (True, ),
+            (False, ),
+            (None, ),
+        ]
+    )
+    def test_from_string_exception(self, value: str) -> None:
+        super().base_test_from_string_exception(value)

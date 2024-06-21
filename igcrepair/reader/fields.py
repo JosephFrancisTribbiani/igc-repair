@@ -1,6 +1,7 @@
 import re
 from .utils import RecordFieldError
 from abc import ABCMeta, abstractmethod
+from typing import Type
 
 
 class RecordField(metaclass=ABCMeta):
@@ -23,61 +24,61 @@ class RecordField(metaclass=ABCMeta):
             raise RecordFieldError('Передаваемое значение должно быть типа <str>.')
         
 
-class RecordLiteral(RecordField):
+class StringRecordField(RecordField):
+    PATTERN: Type[re.Pattern] = NotImplemented
 
-    LETTERS = {'A', 'G', 'H', 'I', 'J', 'C', 'B', 'E', 'F', 'K', 'L', 'D'}
+    def __init__(self, value: str) -> None:
+        
+        self._value = NotImplemented
+        self.value = value
 
-    def __init__(self, record_literal: str) -> None:
-        
-        self._record_literal = NotImplemented
-        self.record_literal = record_literal
-        
     @property
-    def record_literal(self) -> str:
-        return self._record_literal
+    def value(self) -> str:
+        return self._value
     
-    @record_literal.setter
-    def record_literal(self, value) -> None:
+    @value.setter
+    def value(self, value) -> None:
         if not (
             isinstance(value, str)
-            and value.upper() in self.LETTERS
+            and re.fullmatch(pattern=self.PATTERN, string=value)
         ):
-            raise RecordFieldError('Не является ни одной из букв %s' % self.LETTERS)
-        self._record_literal = value.upper()
+            raise RecordFieldError('Формат поля %s не соответствует формату %s.', self.__class__.__name__, self.PATTERN)
+        self._value = value.upper()
 
     def __str__(self) -> str:
-        return self.record_literal
-
+        return self.value
+    
     @classmethod
     def from_string(cls, string: str):
         super().from_string(string)
-        return cls(record_literal=string)
+        return cls(value=string)
+
+        
+
+class RecordLiteral(StringRecordField):
+    PATTERN = re.compile(pattern=r'[AGHIJCBEFKLD]{1}', flags=re.IGNORECASE)
     
 
-class ManufacturerCode(RecordField):
+class ManufacturerCode(StringRecordField):
+    PATTERN = re.compile(pattern=r'[0-9A-Z]{3}', flags=re.IGNORECASE)
 
-    def __init__(self, manufacturer_code: str) -> None:
-        
-        self._manufacturer_code = NotImplemented
-        self.manufacturer_code = manufacturer_code
-        
+
+class UniqueID(StringRecordField):
+    PATTERN = re.compile(pattern=r'[0-9A-Z]{3}', flags=re.IGNORECASE)
+
+    
+class IDExtention(StringRecordField):
+    PATTERN = re.compile(pattern=r'[0-9A-Z]*', flags=re.IGNORECASE)
+
     @property
-    def manufacturer_code(self) -> str:
-        return self._manufacturer_code
+    def value(self) -> str:
+        return self._value
     
-    @manufacturer_code.setter
-    def manufacturer_code(self, value) -> None:
+    @value.setter
+    def value(self, value) -> None:
         if not (
             isinstance(value, str)
-            and re.fullmatch(pattern=r'[0-9A-Z]{3}', string=value, flags=re.IGNORECASE)
+            and re.fullmatch(pattern=self.PATTERN, string=value)
         ):
-            raise RecordFieldError('Код производителя должен состоять из трех символов {0-9, a-z, A-Z}.')
-        self._manufacturer_code = value.upper()
-
-    def __str__(self) -> str:
-        return self.manufacturer_code
-
-    @classmethod
-    def from_string(cls, string: str):
-        super().from_string(string)
-        return cls(manufacturer_code=string)
+            raise RecordFieldError('Формат поля %s не соответствует формату %s.', self.__class__.__name__, self.PATTERN)
+        self._value = value
