@@ -1,6 +1,6 @@
 import datetime
 import unittest
-from typing import Type, Any
+from typing import Type, Any, Union, Tuple
 
 from parameterized import parameterized
 
@@ -13,6 +13,7 @@ from igcrepair.reader.fields import (
     IDExtension,
     Validity,
     TimeUTC,
+    Latitude,
 )
 
 
@@ -279,3 +280,118 @@ class TestTimeUTC(unittest.TestCase):
     def test_from_string_exception(self, value: Any, msg: str) -> None:
         with self.assertRaisesRegex(RecordFieldError, msg):
             TimeUTC.from_string(value)
+
+
+class TestLatitude(unittest.TestCase):
+
+    @parameterized.expand(
+        [
+            (0, 0, 0., 0, 0., 'N'),
+            (5.1, 5, 6., 6, 0., 'N'),
+            (-5.1, 5, 6., 6, 0., 'S'),
+            (89.1, 89, 6., 6, 0., 'N'),
+            (-89.1, 89, 6., 6, 0., 'S'),
+            (38.272689, 38, 16.36134, 16, 21.6804, 'N'),
+        ]
+    )
+    def test(
+        self,
+        dd: Union[int, float],
+        expected_degrees: int,
+        expected_decimal_minutes: float,
+        expected_minutes: int,
+        expected_decimal_seconds: float,
+        expected_side: str,
+    ) -> None:
+        latitude = Latitude(dd)
+        self.assertEqual(latitude.degrees, expected_degrees)
+        self.assertAlmostEqual(latitude.decimal_minutes, expected_decimal_minutes, 6)
+        self.assertEqual(latitude.minutes, expected_minutes)
+        self.assertAlmostEqual(latitude.decimal_seconds, expected_decimal_seconds, 6)
+        self.assertEqual(latitude.side, expected_side)
+
+    @parameterized.expand(
+        [
+            (0, 0, 0., 'N', 0.),
+            (0, 0, 0., 'S', 0.),
+            (0, 6, 0., 'S', -0.1),
+            (89, 6, 0., 'N', 89.1),
+            (89, 6, 0., 'S', -89.1),
+        ]
+    )
+    def test_from_dms(self, degrees: int, minutes: int, decimal_seconds: float, side: str, expected_dd: float) -> None:
+        latitude = Latitude.from_dms(degrees, minutes, decimal_seconds, side)
+        self.assertEqual(latitude.dd, expected_dd)
+
+    @parameterized.expand(
+        [
+            (0, 0., 'N', 0.),
+            (0, 0., 'S', 0.),
+            (89, 6., 'N', 89.1),
+            (89, 6., 'S', -89.1),
+        ]
+    )
+    def test_from_dmm(self, degrees: int, decimal_minutes: float, side: str, expected_dd: float) -> None:
+        latitude = Latitude.from_dmm(degrees, decimal_minutes, side)
+        self.assertEqual(latitude.dd, expected_dd)
+
+    @parameterized.expand(
+        [
+            ('0000000N', 0.),
+            ('9000000N', 90.),
+            ('9000000S', -90.),
+            ('8906000N', 89.1),
+            ('8906000S', -89.1),
+            ('0506000N', 5.1),
+            ('0506000S', -5.1),
+        ]
+    )
+    def test_from_string(self, string: str, expected_dd: float) -> None:
+        latitude = Latitude.from_string(string)
+        self.assertEqual(latitude.dd, expected_dd)
+
+    @parameterized.expand(
+        [
+            (0., 0, 0, 'S', 'degrees должен быть типа <int>.'),
+            ('a', 0, 0, 'S', 'degrees должен быть типа <int>.'),
+            (True, 0, 0, 'S', 'degrees должен быть типа <int>.'),
+            (False, 0, 0, 'S', 'degrees должен быть типа <int>.'),
+            (None, 0, 0, 'S', 'degrees должен быть типа <int>.'),
+            (91, 0, 0, 'S', 'degrees должен быть в промежутке'),
+            (-1, 0, 0, 'S', 'degrees должен быть в промежутке'),
+            (90, 0., 0, 'S', 'minutes должен быть типа <int>.'),
+            (90, 'a', 0, 'S', 'minutes должен быть типа <int>.'),
+            (90, True, 0, 'S', 'minutes должен быть типа <int>.'),
+            (90, False, 0, 'S', 'minutes должен быть типа <int>.'),
+            (90, None, 0, 'S', 'minutes должен быть типа <int>.'),
+            (90, -1, 0, 'S', 'minutes должен быть в промежутке'),
+            (90, 61, 0, 'S', 'minutes должен быть в промежутке'),
+            (90, 60, 'a', 'S', 'decimal_seconds должен быть типа <int> или <float>.'),
+            (90, 60, True, 'S', 'decimal_seconds должен быть типа <int> или <float>.'),
+            (90, 60, False, 'S', 'decimal_seconds должен быть типа <int> или <float>.'),
+            (90, 60, None, 'S', 'decimal_seconds должен быть типа <int> или <float>.'),
+            (90, 60, -0.0001, 's', 'decimal_seconds должен быть в промежутке'),
+            (90, 60, 60.0001, 's', 'decimal_seconds должен быть в промежутке'),
+            (90, 60, 60, 0, 'side должен быть типа <str>.'),
+            (90, 60, 60, 1., 'side должен быть типа <str>.'),
+            (90, 60, 60, True, 'side должен быть типа <str>.'),
+            (90, 60, 60, False, 'side должен быть типа <str>.'),
+            (90, 60, 60, None, 'side должен быть типа <str>.'),
+            (90, 60, 60, 'a', r'side должен быть .{1} или .{1}\. Указан .*\.'),
+            (90, 60, 60, 'aaaa', r'side должен быть .{1} или .{1}\. Указан .*\.'),
+            (90, 60, 60, '', r'side должен быть .{1} или .{1}\. Указан .*\.'),
+            (90, 1, 0.0001, 'S', r'Значение decimal_degrees должно быть в промежутке'),
+            (90, 1, 0., 'S', r'Значение decimal_degrees должно быть в промежутке'),
+            (90, 0, 0.0001, 'S', r'Значение decimal_degrees должно быть в промежутке'),
+        ]
+    )
+    def test_from_dms_exception(
+        self,
+        degrees: int,
+        minutes: int,
+        decimal_seconds: Union[int, float],
+        side: str,
+        msg: str,
+    ) -> None:
+        with self.assertRaisesRegex(RecordFieldError, msg):
+            Latitude.from_dms(degrees, minutes, decimal_seconds, side)
