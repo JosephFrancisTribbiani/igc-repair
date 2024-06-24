@@ -13,8 +13,8 @@ class RecordFieldError(ValueError):
 
 def get_field(record: str, obj, *idx: Union[int, slice], **kwargs):
     """
-    :param s:
-    :param idx:
+    :param record:
+    :param obj:
     :return:
     """
     field_value = operator.itemgetter(*idx)(record)
@@ -23,7 +23,3 @@ def get_field(record: str, obj, *idx: Union[int, slice], **kwargs):
         field_value = reduce(operator.add, field_value)
 
     return obj(value=field_value, **kwargs)
-
-
-def set_field(record: str, obj, *idx: Union[int, slice], **kwargs) -> str:
-    ...

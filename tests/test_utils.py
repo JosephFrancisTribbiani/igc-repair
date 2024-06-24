@@ -1,8 +1,10 @@
 import unittest
-from unittest.mock import MagicMock
 from typing import List, Union
-from igcrepair.reader.utils import get_field
+from unittest.mock import MagicMock
+
 from parameterized import parameterized
+
+from igcrepair.reader.utils import get_field
 
 
 class TestGetField(unittest.TestCase):
