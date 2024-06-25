@@ -1,6 +1,6 @@
 import datetime
 import unittest
-from typing import Type, Any, Union, Tuple
+from typing import Type, Any, Union
 
 from parameterized import parameterized
 
@@ -14,6 +14,9 @@ from igcrepair.reader.fields import (
     Validity,
     TimeUTC,
     Latitude,
+    Longitude,
+    PressureAltitude,
+    GNSSAltitude,
 )
 
 
@@ -395,3 +398,135 @@ class TestLatitude(unittest.TestCase):
     ) -> None:
         with self.assertRaisesRegex(RecordFieldError, msg):
             Latitude.from_dms(degrees, minutes, decimal_seconds, side)
+
+    @parameterized.expand(
+        [
+            (0., 0., 's', 'degrees должен быть типа <int>.'),
+            ('a', 0., 'S', 'degrees должен быть типа <int>.'),
+            (True, 0., 'n', 'degrees должен быть типа <int>.'),
+            (False, 0., 'N', 'degrees должен быть типа <int>.'),
+            (None, 0., 'S', 'degrees должен быть типа <int>.'),
+            (-1, 0., 'S', 'degrees должен быть в промежутке'),
+            (91, 0., 'S', 'degrees должен быть в промежутке'),
+            (90, 'a', 'S', 'decimal_minutes должен быть типа <int> или <float>.'),
+            (90, False, 'S', 'decimal_minutes должен быть типа <int> или <float>.'),
+            (90, True, 'S', 'decimal_minutes должен быть типа <int> или <float>.'),
+            (90, None, 'S', 'decimal_minutes должен быть типа <int> или <float>.'),
+            (90, -0.001, 's', 'decimal_minutes должен быть в промежутке'),
+            (90, 90.001, 's', 'decimal_minutes должен быть в промежутке'),
+            (90, 0.0001, 'S', r'Значение decimal_degrees должно быть в промежутке'),
+            (90, 0.0001, 'n', r'Значение decimal_degrees должно быть в промежутке'),
+        ]
+    )
+    def test_from_dmm_exception(
+        self,
+        degrees: int,
+        decimal_minutes: float,
+        side: str,
+        msg: str,
+    ) -> None:
+        with self.assertRaisesRegex(RecordFieldError, msg):
+            Latitude.from_dmm(degrees, decimal_minutes, side)
+
+    @parameterized.expand(
+        [
+            ('0000000W', 'Неправильный формат широты.'),
+            ('a000000S', 'Неправильный формат широты.'),
+            ('00000000S', 'Неправильный формат широты.'),
+            ('9100000S', 'degrees должен быть в промежутке'),
+        ]
+    )
+    def test_from_string_exception(
+        self,
+        string: str,
+        msg: str,
+    ) -> None:
+        with self.assertRaisesRegex(RecordFieldError, msg):
+            Latitude.from_string(string)
+
+
+class TestLongitude(unittest.TestCase):
+
+    @parameterized.expand(
+        [
+            ('00000000W', 0.),
+            ('18000000E', 180.),
+            ('18000000W', -180.),
+            ('17906000E', 179.1),
+            ('17906000W', -179.1),
+        ]
+    )
+    def test_from_string(self, string: str, expected_dd: float) -> None:
+        longitude = Longitude.from_string(string)
+        self.assertEqual(longitude.dd, expected_dd)
+
+    @parameterized.expand(
+        [
+            ('18000000S', 'Неправильный формат долготы.'),
+            ('18000001W', 'Значение decimal_degrees должно быть в промежутке'),
+        ]
+    )
+    def test_from_string_exception(
+        self,
+        string: str,
+        msg: str,
+    ) -> None:
+        with self.assertRaisesRegex(RecordFieldError, msg):
+            Longitude.from_string(string)
+
+
+class TestPressureAltitude(unittest.TestCase):
+
+    @parameterized.expand(
+        [
+            (0, '00000'),
+            (9999, '09999'),
+            (-9999, '-9999'),
+        ]
+    )
+    def test_pressure_altitude(self, value: int, expected_str: str) -> None:
+        alt = PressureAltitude(value)
+        self.assertEqual(str(alt), expected_str)
+
+    @parameterized.expand(
+        [
+            (0., 'Поле PressureAltitude должно быть типа <int>.'),
+            ('0', 'Поле PressureAltitude должно быть типа <int>.'),
+            (None, 'Поле PressureAltitude должно быть типа <int>.'),
+            (False, 'Поле PressureAltitude должно быть типа <int>.'),
+            (True, 'Поле PressureAltitude должно быть типа <int>.'),
+            (99999, 'Поле PressureAltitude должно быть в промежутке'),
+            (-10000, 'Поле PressureAltitude должно быть в промежутке'),
+        ]
+    )
+    def test_pressure_altitude_exception(self, value: int, msg: str) -> None:
+        with self.assertRaisesRegex(RecordFieldError, msg):
+            PressureAltitude(value)
+
+
+class TestGNSSAltitude(unittest.TestCase):
+
+    @parameterized.expand(
+        [
+            (0, '00000'),
+            (99999, '99999'),
+        ]
+    )
+    def test_gnss_altitude(self, value: int, expected_str: str) -> None:
+        alt = GNSSAltitude(value)
+        self.assertEqual(str(alt), expected_str)
+
+    @parameterized.expand(
+        [
+            (0., 'Поле GNSSAltitude должно быть типа <int>.'),
+            ('0', 'Поле GNSSAltitude должно быть типа <int>.'),
+            (None, 'Поле GNSSAltitude должно быть типа <int>.'),
+            (False, 'Поле GNSSAltitude должно быть типа <int>.'),
+            (True, 'Поле GNSSAltitude должно быть типа <int>.'),
+            (-1, 'Поле GNSSAltitude должно быть в промежутке'),
+            (100000, 'Поле GNSSAltitude должно быть в промежутке'),
+        ]
+    )
+    def test_gnss_altitude_exception(self, value: int, msg: str) -> None:
+        with self.assertRaisesRegex(RecordFieldError, msg):
+            GNSSAltitude(value)

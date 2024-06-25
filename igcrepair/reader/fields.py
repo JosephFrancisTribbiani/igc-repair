@@ -28,13 +28,40 @@ class RecordField(metaclass=ABCMeta):
     def from_string(cls, string: str) -> None:
         if not type(string) is str:
             raise RecordFieldError('Передаваемое значение должно быть типа <str>.')
-        
+
+
+class IntRecordField(RecordField):
+    def __init__(self, value: int) -> None:
+        self._value: int = NotImplemented
+        self.value = value
+
+    @property
+    def value(self) -> int:
+        return self._value
+
+    @value.setter
+    def value(self, value: int) -> None:
+        if not type(value) is int:
+            raise RecordFieldError('Значение должно быть типа <int>.')
+        self._value = value
+
+    def __str__(self) -> str:
+        return str(self.value)
+
+    @classmethod
+    @abstractmethod
+    def from_string(cls, string: str) -> None:
+        """
+        :param string:
+        :return:
+        """
+        super().from_string(string)
+
 
 class StringRecordField(RecordField):
     PATTERN: re.Pattern = NotImplemented
 
     def __init__(self, value: str) -> None:
-        
         self._value: str = NotImplemented
         self.value = value
 
@@ -43,7 +70,7 @@ class StringRecordField(RecordField):
         return self._value
     
     @value.setter
-    def value(self, value) -> None:
+    def value(self, value: str) -> None:
         if not (
             type(value) is str
             and re.fullmatch(pattern=self.PATTERN, string=value)
@@ -55,7 +82,7 @@ class StringRecordField(RecordField):
 
     def __str__(self) -> str:
         return self.value
-    
+
     @classmethod
     def from_string(cls, string: str) -> Self:
         super().from_string(string)
@@ -385,10 +412,64 @@ class Longitude(Coordinates):
         """
         super().from_string(string)
         if not (
-                re.fullmatch(pattern=r'[0-9]{8}[NS]{1}', string=string, flags=re.IGNORECASE)
+                re.fullmatch(pattern=r'[0-9]{8}[WE]{1}', string=string, flags=re.IGNORECASE)
         ):
             raise RecordFieldError('Неправильный формат долготы.')
         degrees = int(string[slice(0, 3)])
         decimal_minutes = float(int(string[slice(3, 8)]) / 1000)
         side = string[8].upper()
         return cls.from_dmm(degrees, decimal_minutes, side)
+
+
+class PressureAltitude(IntRecordField):
+
+    @property
+    def value(self) -> int:
+        return self._value
+
+    @value.setter
+    def value(self, value: int) -> None:
+        if not type(value) is int:
+            raise RecordFieldError('Поле PressureAltitude должно быть типа <int>.')
+        if not -9999 <= value <= 9999:
+            raise RecordFieldError(
+                'Поле PressureAltitude должно быть в промежутке [-9999, 9999]. Указано {0}'.format(value)
+            )
+        self._value = value
+
+    @classmethod
+    def from_string(cls, string: str) -> Self:
+        super().from_string(string)
+        if not re.fullmatch(pattern=r'[0-]{1}[0-9]{4}', string=string):
+            raise RecordFieldError('Неправильный формат поля PressureAltitude.')
+        value = int(string)
+        return cls(value)
+
+    def __str__(self) -> str:
+        return '{0:05d}'.format(self.value)
+
+
+class GNSSAltitude(IntRecordField):
+
+    @property
+    def value(self) -> int:
+        return self._value
+
+    @value.setter
+    def value(self, value: int) -> None:
+        if not type(value) is int:
+            raise RecordFieldError('Поле GNSSAltitude должно быть типа <int>.')
+        if not 0 <= value <= 99999:
+            raise RecordFieldError('Поле GNSSAltitude должно быть в промежутке [0, 99999]. Указано {0}'.format(value))
+        self._value = value
+
+    @classmethod
+    def from_string(cls, string: str) -> Self:
+        super().from_string(string)
+        if not re.fullmatch(pattern=r'[0-9]{5}', string=string):
+            raise RecordFieldError('Неправильный формат поля GNSSAltitude.')
+        value = int(string)
+        return cls(value)
+
+    def __str__(self) -> str:
+        return '{0:05d}'.format(self.value)
