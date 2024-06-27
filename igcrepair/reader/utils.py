@@ -11,7 +11,7 @@ class RecordFieldError(ValueError):
     ...
 
 
-def get_field(record: str, obj, *idx: Union[int, slice], **kwargs):
+def record2field(record: str, obj, *idx: Union[int, slice], **kwargs):
     """
     :param record:
     :param obj:
@@ -22,4 +22,4 @@ def get_field(record: str, obj, *idx: Union[int, slice], **kwargs):
     if isinstance(field_value, tuple):
         field_value = reduce(operator.add, field_value)
 
-    return obj(value=field_value, **kwargs)
+    return obj.from_string(field_value, **kwargs)
