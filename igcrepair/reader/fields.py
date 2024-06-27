@@ -13,9 +13,10 @@ class RecordField(metaclass=ABCMeta):
     def __call__(self) -> str:
         return str(self)
 
+    @abstractmethod
     def __repr__(self) -> str:
-        return str(self)
-    
+        ...
+
     @abstractmethod
     def __str__(self) -> str:
         ...
@@ -31,9 +32,20 @@ class RecordField(metaclass=ABCMeta):
 
 
 class IntRecordField(RecordField):
+
+    BOUNDS: Tuple[int, int]
+    STRING_PATTERN: re.Pattern = NotImplemented
+
     def __init__(self, value: int) -> None:
         self._value: int = NotImplemented
         self.value = value
+
+    def __str__(self) -> str:
+        return str(self.value)
+
+    @abstractmethod
+    def __repr__(self) -> str:
+        ...
 
     @property
     def value(self) -> int:
@@ -41,29 +53,52 @@ class IntRecordField(RecordField):
 
     @value.setter
     def value(self, value: int) -> None:
+
         if not type(value) is int:
-            raise RecordFieldError('Значение должно быть типа <int>.')
+            raise RecordFieldError(
+                'Значение поля {0} должно быть типа <int>.'.format(self.__class__.__name__)
+            )
+
+        if not self.BOUNDS[0] <= value <= self.BOUNDS[1]:
+            raise RecordFieldError(
+                'Значение поля {0} должно быть в промежутке [{1}, {2}]. Указано {3}.'.format(
+                    self.__class__.__name__, *self.BOUNDS, value
+                )
+            )
+
         self._value = value
 
-    def __str__(self) -> str:
-        return str(self.value)
-
     @classmethod
-    @abstractmethod
-    def from_string(cls, string: str) -> None:
+    def from_string(cls, string: str) -> Self:
         """
         :param string:
         :return:
         """
         super().from_string(string)
 
+        if not re.fullmatch(pattern=cls.STRING_PATTERN, string=string):
+            raise RecordFieldError(
+                'Формат поля {0} не соответствует формату {1}.'.format(cls.__class__.__name__, cls.STRING_PATTERN)
+            )
+
+        value = int(string)
+        return cls(value)
+
 
 class StringRecordField(RecordField):
-    PATTERN: re.Pattern = NotImplemented
+
+    STRING_PATTERN: re.Pattern = NotImplemented
 
     def __init__(self, value: str) -> None:
         self._value: str = NotImplemented
         self.value = value
+
+    @abstractmethod
+    def __repr__(self) -> str:
+        ...
+
+    def __str__(self) -> str:
+        return self.value
 
     @property
     def value(self) -> str:
@@ -73,15 +108,12 @@ class StringRecordField(RecordField):
     def value(self, value: str) -> None:
         if not (
             type(value) is str
-            and re.fullmatch(pattern=self.PATTERN, string=value)
+            and re.fullmatch(pattern=self.STRING_PATTERN, string=value)
         ):
             raise RecordFieldError(
-                'Формат поля {0} не соответствует формату {1}.'.format(self.__class__.__name__, self.PATTERN)
+                'Формат поля {0} не соответствует формату {1}.'.format(self.__class__.__name__, self.STRING_PATTERN)
             )
         self._value = value.upper()
-
-    def __str__(self) -> str:
-        return self.value
 
     @classmethod
     def from_string(cls, string: str) -> Self:
@@ -90,19 +122,32 @@ class StringRecordField(RecordField):
 
 
 class RecordLiteral(StringRecordField):
-    PATTERN: re.Pattern = re.compile(pattern=r'[AGHIJCBEFKLD]{1}', flags=re.IGNORECASE)
+
+    STRING_PATTERN: re.Pattern = re.compile(pattern=r'[AGHIJCBEFKLD]{1}', flags=re.IGNORECASE)
+
+    def __repr__(self) -> str:
+        return self.value
     
 
 class ManufacturerCode(StringRecordField):
-    PATTERN: re.Pattern = re.compile(pattern=r'[0-9A-Z]{3}', flags=re.IGNORECASE)
+
+    STRING_PATTERN: re.Pattern = re.compile(pattern=r'[0-9A-Z]{3}', flags=re.IGNORECASE)
+
+    def __repr__(self) -> str:
+        return 'MMM'
 
 
 class UniqueID(StringRecordField):
-    PATTERN: re.Pattern = re.compile(pattern=r'[0-9A-Z]{3}', flags=re.IGNORECASE)
+
+    STRING_PATTERN: re.Pattern = re.compile(pattern=r'[0-9A-Z]{3}', flags=re.IGNORECASE)
+
+    def __repr__(self) -> str:
+        return 'NNN'
 
     
 class IDExtension(StringRecordField):
-    PATTERN: re.Pattern = re.compile(pattern=r'[0-9A-Z]*', flags=re.IGNORECASE)
+
+    STRING_PATTERN: re.Pattern = re.compile(pattern=r'[0-9A-Z]*', flags=re.IGNORECASE)
 
     @property
     def value(self) -> str:
@@ -112,12 +157,15 @@ class IDExtension(StringRecordField):
     def value(self, value) -> None:
         if not (
             type(value) is str
-            and re.fullmatch(pattern=self.PATTERN, string=value)
+            and re.fullmatch(pattern=self.STRING_PATTERN, string=value)
         ):
             raise RecordFieldError(
-                'Формат поля {0} не соответствует формату {1}.'.format(self.__class__.__name__, self.PATTERN)
+                'Формат поля {0} не соответствует формату {1}.'.format(self.__class__.__name__, self.STRING_PATTERN)
             )
         self._value = value
+
+    def __repr__(self) -> str:
+        return 'TEXTSTRING'
 
 
 class Validity(StringRecordField):
@@ -125,10 +173,15 @@ class Validity(StringRecordField):
     Use A for a 3D fix and V for a 2D fix (no GPS altitude) or for no GPS data (pressure altitude data must continue
     to be recorded using times from the RTC).
     """
-    PATTERN: re.Pattern = re.compile(pattern=r'[AV]{1}', flags=re.IGNORECASE)
+
+    STRING_PATTERN: re.Pattern = re.compile(pattern=r'[AV]{1}', flags=re.IGNORECASE)
+
+    def __repr__(self) -> str:
+        return self.value
 
 
 class TimeUTC(RecordField):
+
     TIME_FORMAT = '%H%M%S'
 
     def __init__(self, value: datetime.time) -> None:
@@ -140,6 +193,9 @@ class TimeUTC(RecordField):
 
     def __str__(self) -> str:
         return self.value.strftime(self.TIME_FORMAT)
+
+    def __repr__(self) -> str:
+        return 'HHMMSS'
 
     @classmethod
     def from_string(cls, string: str) -> Self:
@@ -154,7 +210,7 @@ class TimeUTC(RecordField):
             )
 
 
-class Coordinates(RecordField):
+class Coordinates(RecordField, metaclass=ABCMeta):
 
     BOUNDS: Tuple[int, int] = NotImplemented
     NEGATIVE_SIDE: str = NotImplemented
@@ -169,6 +225,14 @@ class Coordinates(RecordField):
         self.n_digits: int = n_digits
         self._dd: float = NotImplemented
         self.dd = dd
+
+    @abstractmethod
+    def __str__(self) -> str:
+        ...
+
+    @abstractmethod
+    def __repr__(self) -> str:
+        ...
 
     @property
     def dd(self) -> float:
@@ -343,10 +407,6 @@ class Coordinates(RecordField):
             dd *= -1
         return cls(dd)
 
-    @abstractmethod
-    def __str__(self) -> str:
-        ...
-
     @classmethod
     @abstractmethod
     def from_string(cls, string: str) -> None:
@@ -367,6 +427,9 @@ class Latitude(Coordinates):
         degrees, decimal_minutes, side = self.dmm
         decimal_minutes = int(decimal_minutes * 1000)
         return '{0:02d}{1:05d}{2}'.format(degrees, decimal_minutes, side)
+
+    def __repr__(self) -> str:
+        return 'DDMMmmmN/S'
 
     @classmethod
     def from_string(cls, string: str) -> Self:
@@ -400,6 +463,9 @@ class Longitude(Coordinates):
         decimal_minutes = int(decimal_minutes * 1000)
         return '{0:03d}{1:05d}{2}'.format(degrees, decimal_minutes, side)
 
+    def __repr__(self) -> str:
+        return 'DDDMMmmmE/W'
+
     @classmethod
     def from_string(cls, string: str) -> Self:
         """
@@ -423,27 +489,11 @@ class Longitude(Coordinates):
 
 class PressureAltitude(IntRecordField):
 
-    @property
-    def value(self) -> int:
-        return self._value
+    BOUNDS: Tuple[int, int] = (-9999, 9999)
+    STRING_PATTERN: re.Pattern = re.compile(pattern=r'[0-]{1}[0-9]{4}')
 
-    @value.setter
-    def value(self, value: int) -> None:
-        if not type(value) is int:
-            raise RecordFieldError('Поле PressureAltitude должно быть типа <int>.')
-        if not -9999 <= value <= 9999:
-            raise RecordFieldError(
-                'Поле PressureAltitude должно быть в промежутке [-9999, 9999]. Указано {0}'.format(value)
-            )
-        self._value = value
-
-    @classmethod
-    def from_string(cls, string: str) -> Self:
-        super().from_string(string)
-        if not re.fullmatch(pattern=r'[0-]{1}[0-9]{4}', string=string):
-            raise RecordFieldError('Неправильный формат поля PressureAltitude.')
-        value = int(string)
-        return cls(value)
+    def __repr__(self) -> str:
+        return 'PPPPP'
 
     def __str__(self) -> str:
         return '{0:05d}'.format(self.value)
@@ -451,25 +501,23 @@ class PressureAltitude(IntRecordField):
 
 class GNSSAltitude(IntRecordField):
 
-    @property
-    def value(self) -> int:
-        return self._value
+    BOUNDS: Tuple[int, int] = (0, 99999)
+    STRING_PATTERN: re.Pattern = re.compile(pattern=r'[0-9]{5}')
 
-    @value.setter
-    def value(self, value: int) -> None:
-        if not type(value) is int:
-            raise RecordFieldError('Поле GNSSAltitude должно быть типа <int>.')
-        if not 0 <= value <= 99999:
-            raise RecordFieldError('Поле GNSSAltitude должно быть в промежутке [0, 99999]. Указано {0}'.format(value))
-        self._value = value
-
-    @classmethod
-    def from_string(cls, string: str) -> Self:
-        super().from_string(string)
-        if not re.fullmatch(pattern=r'[0-9]{5}', string=string):
-            raise RecordFieldError('Неправильный формат поля GNSSAltitude.')
-        value = int(string)
-        return cls(value)
+    def __repr__(self) -> str:
+        return 'GGGGG'
 
     def __str__(self) -> str:
         return '{0:05d}'.format(self.value)
+
+
+class StartByteNumber(IntRecordField):
+
+    BOUNDS: Tuple[int, int] = (0, 99)
+    STRING_PATTERN: re.Pattern = re.compile(pattern=r'[0-9]{2}')
+
+    def __repr__(self) -> str:
+        return 'SS'
+
+    def __str__(self) -> str:
+        return '{0:02d}'.format(self.value)

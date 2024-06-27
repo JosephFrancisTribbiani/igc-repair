@@ -490,13 +490,13 @@ class TestPressureAltitude(unittest.TestCase):
 
     @parameterized.expand(
         [
-            (0., 'Поле PressureAltitude должно быть типа <int>.'),
-            ('0', 'Поле PressureAltitude должно быть типа <int>.'),
-            (None, 'Поле PressureAltitude должно быть типа <int>.'),
-            (False, 'Поле PressureAltitude должно быть типа <int>.'),
-            (True, 'Поле PressureAltitude должно быть типа <int>.'),
-            (99999, 'Поле PressureAltitude должно быть в промежутке'),
-            (-10000, 'Поле PressureAltitude должно быть в промежутке'),
+            (0., 'Значение поля PressureAltitude должно быть типа <int>.'),
+            ('0', 'Значение поля PressureAltitude должно быть типа <int>.'),
+            (None, 'Значение поля PressureAltitude должно быть типа <int>.'),
+            (False, 'Значение поля PressureAltitude должно быть типа <int>.'),
+            (True, 'Значение поля PressureAltitude должно быть типа <int>.'),
+            (99999, 'Значение поля PressureAltitude должно быть в промежутке'),
+            (-10000, 'Значение поля PressureAltitude должно быть в промежутке'),
         ]
     )
     def test_pressure_altitude_exception(self, value: int, msg: str) -> None:
@@ -518,13 +518,13 @@ class TestGNSSAltitude(unittest.TestCase):
 
     @parameterized.expand(
         [
-            (0., 'Поле GNSSAltitude должно быть типа <int>.'),
-            ('0', 'Поле GNSSAltitude должно быть типа <int>.'),
-            (None, 'Поле GNSSAltitude должно быть типа <int>.'),
-            (False, 'Поле GNSSAltitude должно быть типа <int>.'),
-            (True, 'Поле GNSSAltitude должно быть типа <int>.'),
-            (-1, 'Поле GNSSAltitude должно быть в промежутке'),
-            (100000, 'Поле GNSSAltitude должно быть в промежутке'),
+            (0., 'Значение поля GNSSAltitude должно быть типа <int>.'),
+            ('0', 'Значение поля GNSSAltitude должно быть типа <int>.'),
+            (None, 'Значение поля GNSSAltitude должно быть типа <int>.'),
+            (False, 'Значение поля GNSSAltitude должно быть типа <int>.'),
+            (True, 'Значение поля GNSSAltitude должно быть типа <int>.'),
+            (-1, 'Значение поля GNSSAltitude должно быть в промежутке'),
+            (100000, 'Значение поля GNSSAltitude должно быть в промежутке'),
         ]
     )
     def test_gnss_altitude_exception(self, value: int, msg: str) -> None:
