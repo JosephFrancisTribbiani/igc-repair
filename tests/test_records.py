@@ -3,6 +3,7 @@ import unittest
 from parameterized import parameterized
 
 from igcrepair.reader.records import A
+from igcrepair.reader.utils import RecordError
 
 
 class TestARecord(unittest.TestCase):
@@ -29,6 +30,20 @@ class TestARecord(unittest.TestCase):
         self.assertEqual(a.unique_id.value, expected_unique_id)
         self.assertEqual(a.id_extension.value, expected_id_extension)
         self.assertEqual(str(a), expected_to_string)
+
+    @parameterized.expand(
+        [
+            (123, 'Запись должна быть типа <str> длиной не менее 7-ми символов.'),
+            (True, 'Запись должна быть типа <str> длиной не менее 7-ми символов.'),
+            (False, 'Запись должна быть типа <str> длиной не менее 7-ми символов.'),
+            (None, 'Запись должна быть типа <str> длиной не менее 7-ми символов.'),
+            ('a23456', 'Запись должна быть типа <str> длиной не менее 7-ми символов.'),
+            ('BXCT54ff734e8955a067', 'Неправильный тип записи.'),
+        ]
+    )
+    def test_a_record_exception(self, record: str, msg: str) -> None:
+        with self.assertRaisesRegex(RecordError, msg):
+            A.from_string(record)
 
 
 if __name__ == '__main__':
