@@ -1,49 +1,48 @@
 import unittest
-
 from parameterized import parameterized
+from igcrepair.reader.records import IRecord
+from igcrepair.reader.utils import RecordFieldError
 
-from igcrepair.reader.records import A
-from igcrepair.reader.utils import RecordError
 
-
-class TestARecord(unittest.TestCase):
+class TestIRecord(unittest.TestCase):
 
     @parameterized.expand(
         [
-            ('AXCT54ff734e8955a067', 'A', 'XCT', '54F', 'f734e8955a067', 'AXCT54Ff734e8955a067'),
-            ('AXCT54f', 'A', 'XCT', '54F', '', 'AXCT54F'),
-            ('aXct54fextension', 'A', 'XCT', '54F', 'extension', 'AXCT54Fextension'),
+            ('I023636LAD3737LOD', 2, 'LAD', 36, 36, 'LOD', 37, 37),
+            ('i023636Lad3738loD', 2, 'LAD', 36, 36, 'LOD', 37, 38),
         ]
     )
-    def test_a_record(
-        self, 
-        record: str,
-        expected_record_literal: str, 
-        expected_manufacturer_code: str, 
-        expected_unique_id: str, 
-        expected_id_extension: str,
-        expected_to_string: str,
+    def test_from_string(
+        self,
+        string: str,
+        expected_length: int,
+        ext_1_expected_subtype: str,
+        ext_1_expected_start: str,
+        ext_1_expected_finish: str,
+        ext_2_expected_subtype: str,
+        ext_2_expected_start: str,
+        ext_2_expected_finish: str,
     ) -> None:
-        a = A.from_string(record)
-        self.assertEqual(a.record_literal.value, expected_record_literal)
-        self.assertEqual(a.manufacturer_code.value, expected_manufacturer_code)
-        self.assertEqual(a.unique_id.value, expected_unique_id)
-        self.assertEqual(a.id_extension.value, expected_id_extension)
-        self.assertEqual(str(a), expected_to_string)
+        record = IRecord.from_string(string)
+        self.assertEqual(len(record), expected_length)
+        ext_1 = record.extensions[0]
+        ext_2 = record.extensions[1]
+        self.assertEqual(ext_1.subtype.value, ext_1_expected_subtype)
+        self.assertEqual(ext_1.start.value, ext_1_expected_start)
+        self.assertEqual(ext_1.finish.value, ext_1_expected_finish)
+        self.assertEqual(ext_2.subtype.value, ext_2_expected_subtype)
+        self.assertEqual(ext_2.start.value, ext_2_expected_start)
+        self.assertEqual(ext_2.finish.value, ext_2_expected_finish)
 
     @parameterized.expand(
         [
-            (123, 'Запись должна быть типа <str> длиной не менее 7-ми символов.'),
-            (True, 'Запись должна быть типа <str> длиной не менее 7-ми символов.'),
-            (False, 'Запись должна быть типа <str> длиной не менее 7-ми символов.'),
-            (None, 'Запись должна быть типа <str> длиной не менее 7-ми символов.'),
-            ('a23456', 'Запись должна быть типа <str> длиной не менее 7-ми символов.'),
-            ('BXCT54ff734e8955a067', 'Неправильный тип записи.'),
+            ('I023636LAD3736LOD', 'Начальная позиция должна быть не больше конечной.'),
+            ('I023631LAD3738LOD', 'Начальная позиция должна быть не больше конечной.'),
         ]
     )
-    def test_a_record_exception(self, record: str, msg: str) -> None:
-        with self.assertRaisesRegex(RecordError, msg):
-            A.from_string(record)
+    def test_from_string_exception(self, string: str, expected_msg: str) -> None:
+        with self.assertRaisesRegex(RecordFieldError, expected_msg):
+            IRecord.from_string(string)
 
 
 if __name__ == '__main__':

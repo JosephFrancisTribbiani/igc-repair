@@ -18,6 +18,7 @@ from igcrepair.reader.fields import (
     PressureAltitude,
     GNSSAltitude,
 )
+from igcrepair.reader.extensions_fields import Extension
 
 
 class BaseTestString(unittest.TestCase):
@@ -530,3 +531,45 @@ class TestGNSSAltitude(unittest.TestCase):
     def test_gnss_altitude_exception(self, value: int, msg: str) -> None:
         with self.assertRaisesRegex(RecordFieldError, msg):
             GNSSAltitude(value)
+
+
+class TestExtension(unittest.TestCase):
+
+    @parameterized.expand(
+        [
+            ('0005ACX', 0, 5, 'ACX'),
+        ]
+    )
+    def test_from_string(
+        self,
+        string: str,
+        expected_start: int,
+        expected_finish: int,
+        expected_subtype: str,
+    ) -> None:
+        extension = Extension.from_string(string)
+        self.assertEqual(extension.start.value, expected_start)
+        self.assertEqual(extension.finish.value, expected_finish)
+        self.assertEqual(extension.subtype.value, expected_subtype)
+
+    @parameterized.expand(
+        [
+            (1, RecordFieldError, 'Передаваемое значение должно быть типа <str>.'),
+            (True, RecordFieldError, 'Передаваемое значение должно быть типа <str>.'),
+            (None, RecordFieldError, 'Передаваемое значение должно быть типа <str>.'),
+            ('1234', RecordFieldError, 'Длина строки должна быть равна 7.'),
+            ('-150ABC', RecordFieldError, r'Формат поля .+ не соответствует формату')
+        ]
+    )
+    def test_from_string_exception(
+        self,
+        string: str,
+        expected_exception: Type[Exception],
+        expected_msg: str,
+    ) -> None:
+        with self.assertRaisesRegex(expected_exception, expected_msg):
+            Extension.from_string(string)
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -1,74 +1,46 @@
-from abc import ABCMeta, abstractmethod
-from typing import Type, Union, Dict
+from typing import Tuple, List
 
-from typing_extensions import Self
-
-from igcrepair.reader.fields import (
-    RecordField,
-    RecordLiteral,
-    ManufacturerCode,
-    UniqueID,
-    IDExtension,
+from igcrepair.reader.extensions_fields import (
+    NumberOfExtensions,
+    Extension,
 )
+from igcrepair.reader.fields import RecordLiteral
 from igcrepair.reader.utils import RecordError, record2field
 
 
-class Record(object, metaclass=ABCMeta):
+class IRecord:
 
-    STRUCTURE: Dict[Type[RecordField], Union[int, slice]] = NotImplemented
-    
-    @abstractmethod
+    RECORD_TYPE: RecordLiteral = RecordLiteral(value='I')
+
+    def __init__(self, *extensions: Extension) -> None:
+        self.extensions: Tuple[Extension, ...] = extensions
+
+    def __len__(self) -> int:
+        return len(self.extensions)
+
     def __str__(self) -> str:
-        ...
+        string: str = (
+            f'{self.RECORD_TYPE}'
+            f'{NumberOfExtensions(value=len(self))}'
+        )
+        for extension in self.extensions:
+            string += str(extension)
+        return string
 
     @classmethod
-    @abstractmethod
-    def from_string(cls, record: str) -> Self:
-        ...
-    
-    def __repr__(self) -> str:
-        return str(self)
-
-
-class A(Record):
-
-    def __init__(
-        self,
-        manufacturer_code: ManufacturerCode,
-        unique_id: UniqueID,
-        id_extension: IDExtension,
-    ) -> None:
-
-        self.record_literal: RecordLiteral = RecordLiteral(value='A')
-        self.manufacturer_code: ManufacturerCode = manufacturer_code
-        self.unique_id: UniqueID = unique_id
-        self.id_extension: IDExtension = id_extension
-
-    @classmethod
-    def from_string(cls, record: str) -> Self:
-
-        if not (
-            isinstance(record, str)
-            and len(record) >= 7
-        ):
-            raise RecordError('Запись должна быть типа <str> длиной не менее 7-ми символов.')
-
-        record_literal = record2field(record, RecordLiteral, 0)
-        if record_literal.value != 'A':
+    def from_string(cls, string: str) -> 'IRecord':
+        record_literal: RecordLiteral = record2field(string, RecordLiteral, 0)
+        if record_literal.value != cls.RECORD_TYPE.value:
             raise RecordError(
-                'Неправильный тип записи. Должен быть {0}, передан "A".'.format(record_literal.value)
+                'Неправильный тип записи. Должен быть "{0}", передан "{1}".'.format(
+                    cls.RECORD_TYPE.value, record_literal.value
+                )
             )
+        n_extensions: NumberOfExtensions = record2field(string, NumberOfExtensions, slice(1, 3))
+        extensions: List[Extension] = []
+        for i in range(n_extensions.value):
+            start = 3 + 7 * i
+            finish = start + 7
+            extensions.append(record2field(string, Extension, slice(start, finish)))
 
-        return cls(
-            manufacturer_code=record2field(record, ManufacturerCode, slice(1, 4)),
-            unique_id=record2field(record, UniqueID, slice(4, 7)),
-            id_extension=record2field(record, IDExtension, slice(7, None)),
-        )
-
-    def __str__(self) -> str:
-        return (
-            f'{self.record_literal}'
-            f'{self.manufacturer_code}'
-            f'{self.unique_id}'
-            f'{self.id_extension}'
-        )
+        return cls(*extensions)

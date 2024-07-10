@@ -509,15 +509,3 @@ class GNSSAltitude(IntRecordField):
 
     def __str__(self) -> str:
         return '{0:05d}'.format(self.value)
-
-
-class StartByteNumber(IntRecordField):
-
-    BOUNDS: Tuple[int, int] = (0, 99)
-    STRING_PATTERN: re.Pattern = re.compile(pattern=r'[0-9]{2}')
-
-    def __repr__(self) -> str:
-        return 'SS'
-
-    def __str__(self) -> str:
-        return '{0:02d}'.format(self.value)
