@@ -1,5 +1,7 @@
 import unittest
+
 from parameterized import parameterized
+
 from igcrepair.reader.records import IRecord
 from igcrepair.reader.utils import RecordFieldError
 
